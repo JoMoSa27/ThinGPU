@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thingpu"
+version = "0.1.0"
+description = "Exact spatial thinning and sampling-effort density for species occurrence records, on GPU or CPU"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [{name = "Josué Morera Salas"}, {name = "Christian Asch Burgos"}]
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.22", "scipy>=1.8", "pandas>=1.4"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+thingpu = "thingpu.cli:main"
+
+[tool.setuptools]
+packages = ["thingpu"]

@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use ThinGPU, please cite the article below."
+title: "ThinGPU"
+version: 0.1.0
+license: "PolyForm-Strict-1.0.0"
+authors:
+  - family-names: "Morera Salas"
+    given-names: "Josué"
+    orcid: "https://orcid.org/0009-0002-6858-6733"
+    affiliation: "Centro Nacional de Alta Tecnología (CeNAT), Costa Rica"
+  - family-names: "Asch Burgos"
+    given-names: "Christian"
+    orcid: "https://orcid.org/0000-0002-3111-4858"
+    affiliation: "Centro Nacional de Alta Tecnología (CeNAT), Costa Rica"
+preferred-citation:
+  type: article
+  title: "ThinGPU: a massively parallel tool to mitigate sampling bias in Costa Rica's national biodiversity records"
+  authors:
+    - family-names: "Morera Salas"
+      given-names: "Josué"
+    - family-names: "Asch Burgos"
+      given-names: "Christian"
+  journal: "Tecnología en Marcha"
+  year: 2026
+  notes: "IEEE International Conference on BioInspired Processing (BIP 2026), in press"
