@@ -18,6 +18,12 @@ Both rest on the same computation: finding all records within a geodesic distanc
 
 *Bird records from Costa Rica, 2018: all 1,594,705 GBIF records (left) and the 95,788 kept after thinning every species at 5 km (right).*
 
+The same run works over a whole species range. For the clay-colored thrush (*Turdus grayi*), from Mexico to Colombia, ThinGPU thinned 180,393 unique records at 10 km in 97 ms on an NVIDIA L40S, keeping 5,126; the GeoThinneR package did not finish within 30 minutes.
+
+![Turdus grayi records from Mexico to Colombia before and after thinning at 10 km](docs/figures/continental_example.png)
+
+*Turdus grayi: all 180,393 unique GBIF records (left) and the 5,126 kept after thinning at 10 km (right).*
+
 ## How it works
 
 1. Coordinates are placed on the sphere in 3D. Two records are within geodesic distance *d* exactly when their straight-line distance is below the chord 2R·sin(*d*/2R), so no map projection is needed.
@@ -115,7 +121,11 @@ Repeated records (same species and coordinates to 5 decimals, about 1 m) are lef
 
 ## Choosing the thinning distance
 
-No distance is best in general (Lamboley and Fourcade, 2024). In our tests, thinning removed the concentration of records up to the scale of the grid used to measure it, and beyond that scale only discarded records. A practical rule is to thin at the resolution of your environmental predictors or analysis grid, and to compare a few distances, which ThinGPU makes cheap. Thinning reduces redundancy but does not remove the imprint of sampling effort; combine it with a target-group background, which `thingpu effort` provides from the same search.
+![Records kept against concentration for several thinning distances](docs/figures/choosing_distance.png)
+
+*Left: records kept against the share of records in the busiest 1 % of 5 km cells, one point per distance from 1 to 50 km. Right: the distance with the least concentration, measured on grids of 2, 5 and 10 km.*
+
+No distance is best in general (Lamboley and Fourcade, 2024). In our tests, the concentration of records reached its minimum near the scale of the grid used to measure it, and beyond that scale thinning mostly discarded records. A practical rule is to thin at the resolution of your environmental predictors or analysis grid, and to compare a few distances, which ThinGPU makes cheap. Thinning reduces redundancy but does not remove the imprint of sampling effort; combine it with a target-group background, which reduced that imprint in our tests and which `thingpu effort` provides from the same search.
 
 ## Python API
 
