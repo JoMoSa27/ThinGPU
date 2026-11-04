@@ -55,7 +55,8 @@ def cmd_thin(args):
         print(f"  {km:g} km: kept {kept.sum():,} of {use.sum():,} in {rounds} rounds "
               f"({time.perf_counter() - t:.2f} s)", file=sys.stderr)
         if args.check:
-            close, addable = thinning.check(xyz, group, kept, km * 1000)
+            # The GPU decides in float32, so its result is checked in the same precision.
+            close, addable = thinning.check(xyz, group, kept, km * 1000, "f32" if use_gpu else "f64")
             print(f"    check: {close} pairs closer than {km:g} km, {addable} records could be added",
                   file=sys.stderr)
     if args.only_kept:
@@ -94,7 +95,13 @@ def cmd_example(args):
 
 
 def cmd_selftest(args):
-    """Check the installation: exact CPU thinning, and GPU = CPU when a GPU is available."""
+    """Check the installation: exact CPU thinning, and GPU = CPU when a GPU is available.
+
+    The GPU works on float32 coordinates, so it is compared with the CPU run on the
+    same float32 input. Differences are accepted only when they come from pairs
+    within float32 rounding of d, and are reported. The float64 result can also
+    differ for pairs within float32 resolution (a few centimetres) of d.
+    """
     from .example import synthetic_occurrences
     df = prepare(synthetic_occurrences(args.n), "decimalLongitude", "decimalLatitude", "species")
     use = (df.thingpu_valid & ~df.thingpu_repeat).to_numpy()
@@ -110,14 +117,27 @@ def cmd_selftest(args):
         line = f"  {km:g} km  CPU: kept {kept.sum():,} in {rounds} rounds, {close} close pairs, {addable} addable"
         ok &= close == 0 and addable == 0
         if binary:
+            k32, r32 = thinning.thin(xyz, group, km * 1000, "mindeg", 0, precision="f32")
+            c32 = thinning.target_group_density(xyz, km * 1000, precision="f32")
+            lo, hi = thinning.density_bounds(xyz, km * 1000)
             for index in ("kdtree", "lbvh", "grid"):
                 k_gpu, r_gpu, _ = gpu.thin(xyz, group, km * 1000, "mindeg", 0, index, binary)
-                diff = int((k_gpu != kept).sum())
-                line += f" | GPU {index}: {diff} differences, {r_gpu} rounds"
-                ok &= diff == 0 and r_gpu == rounds
-            c_cpu = thinning.target_group_density(xyz, km * 1000)
-            c_gpu, _ = gpu.target_group_density(xyz, km * 1000, "kdtree", binary)
-            line += f" | effort: {int((c_cpu != c_gpu).sum())} differences"
+                diff = int((k_gpu != k32).sum())
+                line += f"\n    GPU {index}: {diff} differences from CPU, {r_gpu} rounds"
+                if diff:
+                    close, addable = thinning.check(xyz, group, k_gpu, km * 1000, "f32")
+                    line += f" (at the float32 boundary; {close} close pairs, {addable} addable)"
+                    ok &= close == 0 and addable == 0
+                else:
+                    ok &= r_gpu == r32
+                c_gpu, _ = gpu.target_group_density(xyz, km * 1000, index, binary)
+                bad = int(((c_gpu < lo) | (c_gpu > hi)).sum())
+                line += (f"; effort: {int((c_gpu != c32).sum())} counts differ, "
+                         f"{bad} not explained by pairs at the float32 boundary")
+                ok &= bad == 0
+            line += (f"\n    float32 vs float64 (pairs within float32 resolution of d): "
+                     f"{int((k32 != kept).sum())} kept records, "
+                     f"{int((c32 != thinning.target_group_density(xyz, km * 1000)).sum())} counts")
         print(line)
     print("OK" if ok else "FAILED: please report this with the output above")
     sys.exit(0 if ok else 1)

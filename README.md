@@ -24,6 +24,7 @@ Both rest on the same computation: finding all records within a geodesic distanc
 2. A spatial index (k-d tree by default; a linear BVH and a uniform grid are also available) finds every record's neighbours of the same species.
 3. Thinning is solved as a maximal independent set. Every record gets a fixed priority, by default **fewest neighbours first**, which keeps more records than the rule of spThin and GeoThinneR. Records are then decided in parallel rounds, which return exactly the sequential greedy result (Blelloch, Fineman and Shun, 2012).
 4. The CPU and GPU versions use the same priorities, so their results can be compared record by record (`thingpu selftest`).
+5. The GPU works in single precision on coordinates centred on their mean, which resolves a few centimetres for a country. A pair whose distance is within that resolution of *d* can be classed differently than in double precision. `thingpu selftest` compares the GPU with the CPU run on the same float32 coordinates and accepts only differences caused by pairs within float32 rounding of *d* (about 1 mm at 1 km); `--check` applies the same margin to GPU results.
 
 ## Requirements
 
@@ -67,10 +68,10 @@ thingpu effort occurrences.csv --distance 5 --out effort.csv
 `thingpu thin` prints what it did:
 
 ```
-24,000 records, 20,000 unique and valid, 25 species; backend: CPU
-  1 km: kept 11,145 of 20,000 in 10 rounds (0.03 s)
-  5 km: kept 4,682 of 20,000 in 8 rounds (0.50 s)
-  10 km: kept 3,015 of 20,000 in 6 rounds (1.47 s)
+23,964 records, 20,000 unique and valid, 25 species; backend: CPU
+  1 km: kept 13,349 of 20,000 in 6 rounds (0.02 s)
+  5 km: kept 5,419 of 20,000 in 9 rounds (0.24 s)
+  10 km: kept 3,493 of 20,000 in 5 rounds (0.48 s)
 ```
 
 The output keeps every input row and adds columns:

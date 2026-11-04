@@ -8,6 +8,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .geometry import gpu_coordinates
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -18,12 +20,6 @@ def find_binary():
         if candidate and Path(candidate).is_file() and os.access(candidate, os.X_OK):
             return candidate
     return None
-
-
-def _centered_f32(xyz):
-    # The GPU works in single precision. Subtracting the centroid first keeps
-    # about 1 cm of resolution for regional data instead of 0.5 m at Earth scale.
-    return np.ascontiguousarray((xyz - xyz.mean(axis=0)).astype(np.float32))
 
 
 def _run(binary, args, workdir):
@@ -38,7 +34,7 @@ def thin(xyz, group, distance_m, rule="mindeg", seed=0, index="kdtree", binary=N
     binary = binary or find_binary()
     with tempfile.TemporaryDirectory(prefix="thingpu_") as tmp:
         tmp = Path(tmp)
-        _centered_f32(xyz).tofile(tmp / "xyz.f32")
+        gpu_coordinates(xyz).tofile(tmp / "xyz.f32")
         np.ascontiguousarray(group, dtype=np.int32).tofile(tmp / "group.i32")
         info = _run(binary, ["thin", "--n", str(len(xyz)), "--xyz", "xyz.f32", "--group", "group.i32",
                              "--distance-m", repr(float(distance_m)), "--rule", rule, "--seed", str(seed),
@@ -52,7 +48,7 @@ def target_group_density(xyz, distance_m, index="kdtree", binary=None):
     binary = binary or find_binary()
     with tempfile.TemporaryDirectory(prefix="thingpu_") as tmp:
         tmp = Path(tmp)
-        _centered_f32(xyz).tofile(tmp / "xyz.f32")
+        gpu_coordinates(xyz).tofile(tmp / "xyz.f32")
         info = _run(binary, ["effort", "--n", str(len(xyz)), "--xyz", "xyz.f32",
                              "--distance-m", repr(float(distance_m)), "--index", index,
                              "--out", "count.i32"], tmp)

@@ -25,3 +25,31 @@ def chord_radius(distance_m, radius=EARTH_RADIUS_M):
     the geodesic (great-circle) distance, so any spatial index can be used.
     """
     return 2.0 * radius * np.sin(np.asarray(distance_m, dtype=np.float64) / (2.0 * radius))
+
+
+# The GPU compares squared distances in float32, so a pair whose distance is within
+# about one float32 rounding of the radius can fall on either side of it. Checks of
+# GPU results allow this relative margin around the radius (about 1 mm at 1 km).
+F32_MARGIN = 1e-6
+
+
+def gpu_coordinates(xyz):
+    """The float32 coordinates the GPU receives: centred on their mean, which keeps a
+    resolution of a few centimetres for a country instead of 0.5 m at Earth scale."""
+    return np.ascontiguousarray((xyz - xyz.mean(axis=0)).astype(np.float32))
+
+
+def query_frame(xyz, distance_m, precision="f64"):
+    """Coordinates and inclusive query radius equivalent to "distance strictly below d".
+
+    f64: the coordinates as given and the chord lowered by a relative 1e-12.
+    f32: the GPU's float32 coordinates and its radius (the float32 chord lowered by
+    one step), so that the CPU reproduces the decisions of the GPU exactly.
+    """
+    chord = float(chord_radius(distance_m))
+    if precision == "f64":
+        return xyz, chord * STRICT
+    if precision == "f32":
+        return (gpu_coordinates(xyz).astype(np.float64),
+                float(np.nextafter(np.float32(chord), np.float32(0))))
+    raise ValueError(f"unknown precision: {precision}")

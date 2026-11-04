@@ -25,6 +25,15 @@ def test_thinning_is_exact_and_maximal():
         assert thinning.check(xyz, group, kept, 5000) == (0, 0)
 
 
+def test_float32_reference_is_exact_in_its_precision():
+    xyz, group = _data()
+    kept, _ = thinning.thin(xyz, group, 5000, precision="f32")
+    assert thinning.check(xyz, group, kept, 5000, "f32") == (0, 0)
+    lo, hi = thinning.density_bounds(xyz, 5000)
+    c32 = thinning.target_group_density(xyz, 5000, precision="f32")
+    assert ((lo <= c32) & (c32 <= hi)).all()
+
+
 def test_rounds_equal_sequential_greedy():
     xyz, group = _data()
     idx = np.flatnonzero(group == group[0])
